@@ -10,6 +10,21 @@ def get(url):
 	with urllib.request.urlopen(url) as response: 
 		return response.read()
 
+def get_inherit(ebuild):
+    lines = ebuild.splitlines()
+    inheritFound = False
+    eclasses = ""
+    for line in lines:
+        if inheritFound and line.find('\\') != -1:
+            eclasses = eclasses + line.replace("\\", "").strip() + " "
+        elif inheritFound and line.find('\\') == -1:
+            eclasses = eclasses + line.strip() + " "
+            break
+        if line.startswith("inherit"):
+            eclasses = line.replace("inherit", "").replace("\\", "").strip() + " "
+            inheritFound = True
+    return eclasses.strip().split(" ")
+
 def sanitize(path):
 	if path.endswith("/"):
 		return path
@@ -17,7 +32,7 @@ def sanitize(path):
 		return path+"/"
 
 def download_rec(prefix,overlay,package,path):
-	
+	eclasses = []
 	url = "https://data.gpo.zugaina.org/"+overlay+"/"+package
 	if path is not None:
 		url = url + "/" + path
@@ -47,14 +62,18 @@ def download_rec(prefix,overlay,package,path):
 		else:
 			if options.verbose or options.pretend:
 				print(decors+href)
-				
+
+			txt = get(url+"/"+href) 
 			if not options.pretend:
-				txt = get(url+"/"+href) 
 				file = open(prefix+package+path+href,"w")
 				file.write(txt.decode("utf-8")) 
 				file.close()
+				
+			if href.endswith(".ebuild"):
+				eclasses.extend(get_inherit(txt.decode("utf-8")))
 		index = index + 1
-		
+	return eclasses
+
 def search(text):
 	html = get('https://gpo.zugaina.org/Search?search='+text)
 	parsed_html = BeautifulSoup(html, "lxml")
@@ -78,7 +97,29 @@ def download(prefix,overlay,package):
 		print("│   ├── " + sanitize(package.split("/")[1]))
 	if not options.pretend:
 		os.makedirs(prefix+package, exist_ok=True)
-	download_rec(prefix,overlay,package,None);
+	return list(set(download_rec(prefix,overlay,package,None)))
+
+def download_required_eclasses(prefix, overlay, eclasses):
+	eclassExists = False
+	for eclass in eclasses:
+		try:
+			txt = get('https://data.gpo.zugaina.org/' + overlay + 'eclass/' + eclass + ".eclass")
+
+			if not eclassExists and (options.verbose or options.pretend):
+				print("│")
+				print("├── eclass")
+				eclassExists = True
+			if options.verbose or options.pretend:
+				print("│   │")
+				print("│   ├── "+eclass)
+			
+			if not options.pretend:
+				os.makedirs(prefix+"eclass", exist_ok=True)
+				file = open(prefix+"eclass/"+eclass,"w")
+				file.write(txt.decode("utf-8")) 
+				file.close()
+		except Exception:
+			continue
 
 def view_package_overlays(package):
 	try:
@@ -124,5 +165,6 @@ if options.search:
 	else:
 		view_package_overlays(options.search)
 elif options.download:
-	download(sanitize(options.download[0]),options.download[1],options.download[2])
+	eclasses = download(sanitize(options.download[0]),options.download[1],options.download[2])
+	download_required_eclasses(sanitize(options.download[0]),sanitize(options.download[1]),eclasses)
 
