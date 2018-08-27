@@ -151,7 +151,6 @@ def view_package_overlays(package):
 		print("\t" +color("Overlay: ",fg_green=True) + color(overlay, bold=True))
 
 def main():
-	print("aaa")
 	parser = OptionParser()
 	parser.add_option("-s", "--search", dest="search",
 					help="search a package", metavar="TEXT|CATEGORY/PACKAGE")
