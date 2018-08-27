@@ -4,7 +4,9 @@ import sys
 import re
 from optparse import OptionParser
 from bs4 import BeautifulSoup
-from colors import color
+from gpo_zugaina_dl.colors import color
+
+
 
 def get(url):
 	with urllib.request.urlopen(url) as response: 
@@ -45,7 +47,7 @@ def download_rec(prefix,overlay,package,path):
 	index = 5
 	while index < len(items):
 		href = items[index]['href']
-		if options.verbose or options.pretend:
+		if OPTIONS.verbose or OPTIONS.pretend:
 			decors="│   │   │   ├── "
 			for _ in range(len(path.split("/"))-2):
 				decors="│   " + decors
@@ -54,17 +56,17 @@ def download_rec(prefix,overlay,package,path):
 
 		if href.find('/') != -1:
 			#print(href + ' is dir ' + path)
-			if options.verbose or options.pretend:
+			if OPTIONS.verbose or OPTIONS.pretend:
 				print(decors+sanitize(href))
-			if not options.pretend:
+			if not OPTIONS.pretend:
 				os.makedirs(prefix+package+path+href, exist_ok=True)
 			download_rec(prefix,overlay,package,path+href)
 		else:
-			if options.verbose or options.pretend:
+			if OPTIONS.verbose or OPTIONS.pretend:
 				print(decors+href)
 
 			txt = get(url+"/"+href) 
-			if not options.pretend:
+			if not OPTIONS.pretend:
 				file = open(prefix+package+path+href,"w")
 				file.write(txt.decode("utf-8")) 
 				file.close()
@@ -89,13 +91,13 @@ def search(text):
 		print("\t" +color("Description: ",fg_green=True) + strippedItem.split(' ', 1)[1])
 
 def download(prefix,overlay,package):
-	if options.verbose or options.pretend:
+	if OPTIONS.verbose or OPTIONS.pretend:
 		print(prefix)
 		print("│")
 		print("├── " +  sanitize(package.split("/")[0]))
 		print("│   │")
 		print("│   ├── " + sanitize(package.split("/")[1]))
-	if not options.pretend:
+	if not OPTIONS.pretend:
 		os.makedirs(prefix+package, exist_ok=True)
 	return list(set(download_rec(prefix,overlay,package,None)))
 
@@ -105,15 +107,15 @@ def download_required_eclasses(prefix, overlay, eclasses):
 		try:
 			txt = get('https://data.gpo.zugaina.org/' + overlay + 'eclass/' + eclass + ".eclass")
 
-			if not eclassExists and (options.verbose or options.pretend):
+			if not eclassExists and (OPTIONS.verbose or OPTIONS.pretend):
 				print("│")
 				print("├── eclass")
 				eclassExists = True
-			if options.verbose or options.pretend:
+			if OPTIONS.verbose or OPTIONS.pretend:
 				print("│   │")
 				print("│   ├── "+eclass)
 			
-			if not options.pretend:
+			if not OPTIONS.pretend:
 				os.makedirs(prefix+"eclass", exist_ok=True)
 				file = open(prefix+"eclass/"+eclass,"w")
 				file.write(txt.decode("utf-8")) 
@@ -148,23 +150,28 @@ def view_package_overlays(package):
 		print("\t" +color("License: ",fg_green=True) + license)
 		print("\t" +color("Overlay: ",fg_green=True) + color(overlay, bold=True))
 
-parser = OptionParser()
-parser.add_option("-s", "--search", dest="search",
-                  help="search a package", metavar="TEXT|CATEGORY/PACKAGE")
-parser.add_option("-d", "--download", dest="download", nargs=3,
-                  help="download package from overlay")
-parser.add_option("-p", "--pretend", action="store_true", dest="pretend", 
-				  default=False, help="display what will downloaded")
-parser.add_option("-v", "--verbose", action="store_true", dest="verbose", 
-				  default=False, help="run in verbose mode")
-(options, args) = parser.parse_args()
+def main():
+	print("aaa")
+	parser = OptionParser()
+	parser.add_option("-s", "--search", dest="search",
+					help="search a package", metavar="TEXT|CATEGORY/PACKAGE")
+	parser.add_option("-d", "--download", dest="download", nargs=3,
+					help="download package from overlay")
+	parser.add_option("-p", "--pretend", action="store_true", dest="pretend", 
+					default=False, help="display what will downloaded")
+	parser.add_option("-v", "--verbose", action="store_true", dest="verbose", 
+					default=False, help="run in verbose mode")
+	global OPTIONS
+	(OPTIONS, args) = parser.parse_args()
 
-if options.search:
-	if options.search.find("/") == -1:
-		search(options.search)
-	else:
-		view_package_overlays(options.search)
-elif options.download:
-	eclasses = download(sanitize(options.download[0]),options.download[1],options.download[2])
-	download_required_eclasses(sanitize(options.download[0]),sanitize(options.download[1]),eclasses)
+	if OPTIONS.search:
+		if OPTIONS.search.find("/") == -1:
+			search(OPTIONS.search)
+		else:
+			view_package_overlays(OPTIONS.search)
+	elif OPTIONS.download:
+		eclasses = download(sanitize(OPTIONS.download[0]),OPTIONS.download[1],OPTIONS.download[2])
+		download_required_eclasses(sanitize(OPTIONS.download[0]),sanitize(OPTIONS.download[1]),eclasses)
 
+if __name__ == "__main__":
+        main()

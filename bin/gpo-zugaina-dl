@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+
+import gpo_zugaina_dl
+gpo_zugaina_dl.main()
