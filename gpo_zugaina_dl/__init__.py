@@ -88,7 +88,7 @@ def search(text):
 	for searchItem in searchItems:
 		strippedItem = searchItem.text.strip()
 		print(color("*", bold=True, fg_green=True) + " " + color(strippedItem.split(' ', 1)[0], bold=True))
-		print("\t" +color("Description: ",fg_green=True) + strippedItem.split(' ', 1)[1])
+		print("\t" +color("Description: ",fg_green=True) + strippedItem.split(' ', 1)[1]+"\n")
 
 def download(prefix,overlay,package):
 	if OPTIONS.verbose or OPTIONS.pretend:
@@ -138,6 +138,7 @@ def view_package_overlays(package):
 		infos = package.li.find_all('div')
 		name = infos[0].text
 		keywords = infos[1].text
+		use_flags = infos[2].text
 		license = "";
 
 		directTexts = package.li.findAll(text=True, recursive=False)
@@ -147,8 +148,9 @@ def view_package_overlays(package):
 
 		print(color("*", bold=True, fg_green=True) + " " + color(category + "/" + name, bold=True))
 		print("\t" +color("Keywords: ",fg_green=True) + keywords)
+		print("\t" +color("Use flags: ",fg_green=True) + use_flags)
 		print("\t" +color("License: ",fg_green=True) + license)
-		print("\t" +color("Overlay: ",fg_green=True) + color(overlay, bold=True))
+		print("\t" +color("Overlay: ",fg_green=True) + color(overlay, bold=True)+"\n")
 
 def main():
 	usage = "usage: gpo-zugaina-dl [options]"
