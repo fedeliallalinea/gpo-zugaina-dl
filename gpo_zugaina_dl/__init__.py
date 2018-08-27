@@ -151,11 +151,12 @@ def view_package_overlays(package):
 		print("\t" +color("Overlay: ",fg_green=True) + color(overlay, bold=True))
 
 def main():
-	parser = OptionParser()
+	usage = "usage: gpo-zugaina-dl [options]"
+	parser = OptionParser(usage=usage)
 	parser.add_option("-s", "--search", dest="search",
 					help="search a package", metavar="TEXT|CATEGORY/PACKAGE")
 	parser.add_option("-d", "--download", dest="download", nargs=3,
-					help="download package from overlay")
+					help="download package from overlay", metavar="PREFIX OVERLAY CATEGORY/PACKAGE")
 	parser.add_option("-p", "--pretend", action="store_true", dest="pretend", 
 					default=False, help="display what will downloaded")
 	parser.add_option("-v", "--verbose", action="store_true", dest="verbose", 
@@ -171,6 +172,9 @@ def main():
 	elif OPTIONS.download:
 		eclasses = download(sanitize(OPTIONS.download[0]),OPTIONS.download[1],OPTIONS.download[2])
 		download_required_eclasses(sanitize(OPTIONS.download[0]),sanitize(OPTIONS.download[1]),eclasses)
+	else:
+		parser.print_help()
+		sys.exit(1)
 
 if __name__ == "__main__":
         main()
