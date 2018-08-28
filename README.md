@@ -4,19 +4,20 @@ gpo-zugaina-dl - Download overlay, category or package ebuilds from gpo.zugaina.
 
 Synopsis
 --------
-Usage: gpo-zugaina-dl [options]
+	Usage: gpo-zugaina-dl [options]
 
-Options:
-  -h, --help            show this help message and exit
-  -s TEXT|CATEGORY/PACKAGE, --search=TEXT|CATEGORY/PACKAGE
-                        search a package
-  -l LIMIT, --limit=LIMIT
-                        set max limit matches to display (only available with -s option)
-  -d PREFIX OVERLAY CATEGORY/PACKAGE, --download=PREFIX OVERLAY CATEGORY/PACKAGE
-                        download package from overlay
-  -p, --pretend         display what will downloaded (only available with -d option)
-  -v, --verbose         run in verbose mode (only available with -d option)
-
+	Options:
+	-h, --help            show this help message and exit
+	-s TEXT|CATEGORY/PACKAGE, --search=TEXT|CATEGORY/PACKAGE
+							search a package
+	-l LIMIT, --limit=LIMIT
+							set max limit matches to display (only available with
+							-s option)
+	-d PREFIX OVERLAY CATEGORY/PACKAGE, --download=PREFIX OVERLAY CATEGORY/PACKAGE
+							download package from overlay
+	-p, --pretend         display what will downloaded (only available with -d
+							option)
+	-v, --verbose         run in verbose mode (only available with -d option)
 
 Parameters
 ----------
