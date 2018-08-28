@@ -6,8 +6,6 @@ from optparse import OptionParser
 from bs4 import BeautifulSoup
 from gpo_zugaina_dl.colors import color
 
-
-
 def get(url):
 	with urllib.request.urlopen(url) as response: 
 		return response.read()
@@ -76,19 +74,30 @@ def download_rec(prefix,overlay,package,path):
 		index = index + 1
 	return eclasses
 
-def search(text):
-	html = get('https://gpo.zugaina.org/Search?search='+text)
-	parsed_html = BeautifulSoup(html, "lxml")
-	searchItems = parsed_html.body.find('div', attrs={'id':'search_results'}).find_all('a')
+def get_matches(html):
+	 matches = html.body.find('div', attrs={'class':'pager'}).find('span').text
+	 return int(matches.split("of ")[1])
 
-	if not searchItems:
-		print(color("*", bold=True, fg_yellow=True) + ' No results are found for ' + color(text, bold=True))
-		sys.exit(0)
+def calc_page_to_show(html):
+	res = [1]
+	if OPTIONS.limit != 0 and OPTIONS.limit <= GPO_MATCH_PER_PAGE:
+		return res
+	pager = html.body.find('div', attrs={'class':'pager'}).find_all('a')
+	count = GPO_MATCH_PER_PAGE
 
-	for searchItem in searchItems:
-		strippedItem = searchItem.text.strip()
-		print(color("*", bold=True, fg_green=True) + " " + color(strippedItem.split(' ', 1)[0], bold=True))
-		print("\t" +color("Description: ",fg_green=True) + strippedItem.split(' ', 1)[1]+"\n")
+	for page in pager:
+		if page.text.strip():
+			res.append(int(page.text.strip()))
+		count = count + GPO_MATCH_PER_PAGE
+		if OPTIONS.limit != 0 and OPTIONS.limit <= count:
+			break;
+	return res
+
+def print_matches(matches):
+	print("Found {0} matches".format(matches))
+	if matches > OPTIONS.limit and OPTIONS.limit != 0:
+		print("Only {0} matches displayed on terminal".format(OPTIONS.limit))
+		print("Set --limit=0 option to show all matches")
 
 def download(prefix,overlay,package):
 	if OPTIONS.verbose or OPTIONS.pretend:
@@ -133,6 +142,7 @@ def view_package_overlays(package):
 	parsed_html = BeautifulSoup(html, "lxml")
 	packages = parsed_html.body.find('div', attrs={'id':'ebuild_list'}).ul.find_all('div',recursive=False)
 	category = package.split('/')[0]
+	matches = 0
 	for package in packages:
 		overlay = package['id']
 		infos = package.li.find_all('div')
@@ -146,25 +156,57 @@ def view_package_overlays(package):
 			if directText.find('License') != -1:
 				license = directText.strip();
 
+		matches = matches + 1
 		print(color("*", bold=True, fg_green=True) + " " + color(category + "/" + name, bold=True))
 		print("\t" +color("Keywords: ",fg_green=True) + keywords)
 		print("\t" +color("Use flags: ",fg_green=True) + use_flags)
 		print("\t" +color("License: ",fg_green=True) + license)
 		print("\t" +color("Overlay: ",fg_green=True) + color(overlay, bold=True)+"\n")
+	print("Found {0} matches".format(matches))
+	
+def search(text):
+	html = get('https://gpo.zugaina.org/Search?search='+text)
+	parsed_html = BeautifulSoup(html, "lxml")
+	matches = get_matches(parsed_html)
+	pages = calc_page_to_show(parsed_html);
+	search_items_count = 0
+	
+	for page in pages:
+		search_items = parsed_html.body.find('div', attrs={'id':'search_results'}).find_all('a')
+
+		if not search_items:
+			print(color("*", bold=True, fg_yellow=True) + ' No results are found for ' + color(text, bold=True))
+			sys.exit(0)
+
+		for searchItem in search_items:
+			search_items_count = search_items_count + 1
+			strippedItem = searchItem.text.strip()
+			print(color("*", bold=True, fg_green=True) + " " + color(strippedItem.split(' ', 1)[0], bold=True))
+			print("\t" +color("Description: ",fg_green=True) + strippedItem.split(' ', 1)[1]+"\n")
+			if search_items_count == OPTIONS.limit:
+				break;
+
+		html = get('https://gpo.zugaina.org/Search?search={0}&page={1}'.format(text,page))
+		parsed_html = BeautifulSoup(html, "lxml")
+	print_matches(matches)
 
 def main():
+	global OPTIONS 
+	global GPO_MATCH_PER_PAGE
 	usage = "usage: gpo-zugaina-dl [options]"
 	parser = OptionParser(usage=usage)
 	parser.add_option("-s", "--search", dest="search",
 					help="search a package", metavar="TEXT|CATEGORY/PACKAGE")
+	parser.add_option("-l", "--limit", dest="limit", type="int", 
+					default=50, help="set max limit matches to display (only available with -s option)")
 	parser.add_option("-d", "--download", dest="download", nargs=3,
 					help="download package from overlay", metavar="PREFIX OVERLAY CATEGORY/PACKAGE")
 	parser.add_option("-p", "--pretend", action="store_true", dest="pretend", 
-					default=False, help="display what will downloaded")
+					default=False, help="display what will downloaded (only available with -d option)")
 	parser.add_option("-v", "--verbose", action="store_true", dest="verbose", 
-					default=False, help="run in verbose mode")
-	global OPTIONS
+					default=False, help="run in verbose mode (only available with -d option)")
 	(OPTIONS, args) = parser.parse_args()
+	GPO_MATCH_PER_PAGE=50
 
 	if OPTIONS.search:
 		if OPTIONS.search.find("/") == -1:
