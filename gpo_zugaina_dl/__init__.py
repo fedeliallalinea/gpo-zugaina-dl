@@ -169,25 +169,27 @@ def search(text):
 	parsed_html = BeautifulSoup(html, "lxml")
 	matches = get_matches(parsed_html)
 	pages = calc_page_to_show(parsed_html);
-	search_items_count = 0
 	
+	search_items = []
 	for page in pages:
-		search_items = parsed_html.body.find('div', attrs={'id':'search_results'}).find_all('a')
-
-		if not search_items:
+		searchItem = parsed_html.body.find('div', attrs={'id':'search_results'}).find('a')
+		if searchItem is None:
 			print(color("*", bold=True, fg_yellow=True) + ' No results are found for ' + color(text, bold=True))
 			sys.exit(0)
+		while searchItem is not None:
+			search_items.append(searchItem.text.strip())
+			if OPTIONS.limit > 0 and len(search_items) >= OPTIONS.limit:
+			        break
+			searchItem = searchItem.find_next_sibling('a')
 
-		for searchItem in search_items:
-			search_items_count = search_items_count + 1
-			strippedItem = searchItem.text.strip()
-			print(color("*", bold=True, fg_green=True) + " " + color(strippedItem.split(' ', 1)[0], bold=True))
-			print("\t" +color("Description: ",fg_green=True) + strippedItem.split(' ', 1)[1]+"\n")
-			if search_items_count == OPTIONS.limit:
-				break;
+	if OPTIONS.limit == 0:
+		search_items.sort()
 
-		html = get('https://gpo.zugaina.org/Search?search={0}&page={1}'.format(text,page))
-		parsed_html = BeautifulSoup(html, "lxml")
+	for strippedItem in search_items:
+		fields = strippedItem.split(' ', 1)
+		print(color("*", bold=True, fg_green=True) + " " + color(fields[0], bold=True))
+		print("\t" +color("Description: ",fg_green=True) + fields[1]+"\n")
+
 	print_matches(matches)
 
 def main():
